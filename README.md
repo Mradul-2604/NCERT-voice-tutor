@@ -1,18 +1,18 @@
-# 📚 NCERT Voice Tutor
+# NCERT Voice Tutor
 
 **PDF → RAG → Answer → TTS Output**
 
-An intelligent voice tutor that lets you upload NCERT PDFs, ask questions via text or voice, and receive spoken answers using high-quality Text-to-Speech.
+An intelligent voice tutor that lets you upload NCERT PDFs, ask questions in a chat interface, and receive spoken answers using high-quality Text-to-Speech.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     STREAMLIT FRONTEND                          │
 │  ┌──────────┐  ┌──────────────┐  ┌──────────┐  ┌───────────┐  │
-│  │ PDF      │  │ Text/Voice   │  │ Answer   │  │ Audio     │  │
+│  │ PDF      │  │ Text         │  │ Answer   │  │ Audio     │  │
 │  │ Upload   │  │ Question     │  │ Display  │  │ Player    │  │
 │  └────┬─────┘  └──────┬───────┘  └────▲─────┘  └─────▲─────┘  │
 │       │               │               │              │         │
@@ -30,10 +30,10 @@ An intelligent voice tutor that lets you upload NCERT PDFs, ask questions via te
 │  └─────────────────────────────────┘                            │
 │                                                                 │
 │  ┌─────────────────────────────────┐                            │
-│  │       SPEECH MODULES            │                            │
-│  │  Whisper STT (voice input)      │                            │
-│  │  Coqui TTS  (primary output)    │                            │
-│  │  gTTS       (fallback output)   │                            │
+│  │         TTS ENGINES             │                            │
+│  │  ElevenLabs  (premium, 5 voices)│                            │
+│  │  gTTS        (free, online)     │                            │
+│  │  pyttsx3     (offline)          │                            │
 │  └─────────────────────────────────┘                            │
 │                                                                 │
 │  ┌──────────┐  ┌────────┐  ┌────────┐                          │
@@ -45,7 +45,7 @@ An intelligent voice tutor that lets you upload NCERT PDFs, ask questions via te
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 aivoice/
@@ -53,21 +53,22 @@ aivoice/
 │   ├── main.py                  # FastAPI app with all endpoints
 │   ├── rag/
 │   │   ├── pdf_loader.py        # PDF text extraction (pdfplumber)
-│   │   ├── chunker.py           # Text chunking with overlap
+│   │   ├── chunker.py           # Text chunking (rule-based + agentic)
+│   │   ├── agentic_chunker.py   # Gemini-powered paragraph merging
 │   │   ├── embedder.py          # Sentence-transformer embeddings
 │   │   ├── vector_store.py      # FAISS index management
 │   │   ├── retriever.py         # Similarity search + filtering
 │   │   └── generator.py         # Gemini API answer generation
 │   ├── speech/
-│   │   ├── tts_coqui.py         # Coqui TTS (primary)
-│   │   ├── tts_gtts.py          # gTTS (fallback)
-│   │   ├── tts_manager.py       # TTS orchestration + caching
-│   │   └── stt_whisper.py       # Whisper speech-to-text
+│   │   ├── tts_manager.py       # TTS orchestration + fallback
+│   │   ├── tts_elevenlabs.py    # ElevenLabs TTS (premium)
+│   │   ├── tts_gtts.py          # gTTS (free, online)
+│   │   └── tts_coqui.py         # pyttsx3 (offline)
 │   └── utils/
 │       ├── logger.py            # Centralized logging
 │       └── cache.py             # Audio hash-based caching
 ├── frontend/
-│   └── app.py                   # Streamlit UI
+│   └── app.py                   # Streamlit chat UI
 ├── data/
 │   ├── pdfs/                    # Uploaded PDFs
 │   ├── extracted_text/          # Extracted raw text
@@ -75,24 +76,27 @@ aivoice/
 ├── vector_store/
 │   └── faiss_index/             # FAISS index files
 ├── logs/                        # Application logs
+├── .env.example                 # Environment variable template
 ├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 
 - Python 3.10+
 - pip
 - Google Gemini API Key (free from [Google AI Studio](https://aistudio.google.com/app/apikey))
+- ElevenLabs API Key (optional, for premium TTS from [elevenlabs.io](https://elevenlabs.io))
 
-### Step 1: Clone / Navigate to Project
+### Step 1: Clone the Repository
 
 ```bash
-cd c:\Users\mridu\aivoice
+git clone https://github.com/Mradul-2604/NCERT-voice-tutor.git
+cd NCERT-voice-tutor
 ```
 
 ### Step 2: Create Virtual Environment
@@ -109,54 +113,46 @@ venv\Scripts\activate       # Windows
 pip install -r requirements.txt
 ```
 
-> **Note:** Coqui TTS (`TTS` package) may require additional system dependencies. See Troubleshooting below.
+### Step 4: Configure Environment Variables
 
-### Step 4: Configure Gemini API Key
+```bash
+cp .env.example .env
+```
 
-1. **Get a free API key** from [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. **Set the environment variable:**
-   ```bash
-   # Windows PowerShell
-   $env:GEMINI_API_KEY="your-api-key-here"
-   
-   # Windows CMD
-   set GEMINI_API_KEY=your-api-key-here
-   
-   # Linux/macOS
-   export GEMINI_API_KEY=your-api-key-here
-   ```
+Edit `.env` and add your API keys:
 
-> **Note:** The application will not work without a valid Gemini API key.
+```env
+GEMINI_API_KEY=your-gemini-api-key-here
+ELEVENLABS_API_KEY=your-elevenlabs-key-here   # optional
+ENABLE_AGENTIC_CHUNKING=true                  # or false for simple chunking
+```
 
 ### Step 5: Start the Backend
 
 ```bash
-cd c:\Users\mridu\aivoice
 uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-Backend will be available at: http://localhost:8000
+Backend available at: http://localhost:8000
 
 ### Step 6: Start the Frontend
 
 Open a **new terminal**:
 
 ```bash
-cd c:\Users\mridu\aivoice
 streamlit run frontend/app.py
 ```
 
-Frontend will open at: http://localhost:8501
+Frontend opens at: http://localhost:8501
 
 ---
 
-## 🎯 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/upload_pdf` | Upload and index a PDF |
 | `POST` | `/ask_text` | Ask a question via text |
-| `POST` | `/ask_voice` | Ask a question via voice audio |
 | `POST` | `/tts_generate` | Generate speech from text |
 | `POST` | `/clear_db` | Clear database and files |
 | `GET`  | `/health` | Health check |
@@ -165,9 +161,48 @@ Frontend will open at: http://localhost:8501
 
 ---
 
-## 💡 Sample Questions
+## TTS Engines
 
-After uploading an NCERT Biology PDF:
+### ElevenLabs (Premium)
+- 5 voices: Rachel, Adam, Bella, Josh, Elli
+- Model: `eleven_multilingual_v2`
+- Output: `.mp3` format
+- Requires API key
+
+### gTTS (Free, Online)
+- Uses Google Translate TTS
+- Output: `.mp3` format
+- Requires internet connection
+
+### pyttsx3 (Offline)
+- Uses system speech engine (SAPI5 on Windows)
+- 3 voices: default, male, female
+- Output: `.wav` format
+
+### Fallback Chain
+```
+ElevenLabs → (fails?) → gTTS
+pyttsx3    → (fails?) → gTTS
+```
+
+### Audio Caching
+- Audio files are named `audio_{md5_hash}.wav/mp3`
+- Same answer text reuses existing audio — no regeneration
+
+---
+
+## Chunking Modes
+
+| Mode | Config | How it works |
+|------|--------|-------------|
+| **Rule-based** | `ENABLE_AGENTIC_CHUNKING=false` | Splits every 800 chars with 150 overlap |
+| **Agentic** | `ENABLE_AGENTIC_CHUNKING=true` | Gemini merges related paragraphs (max 1200 chars) |
+
+---
+
+## Sample Questions
+
+After uploading an NCERT PDF:
 
 - *"What is photosynthesis?"*
 - *"Explain the structure of a cell."*
@@ -176,76 +211,41 @@ After uploading an NCERT Biology PDF:
 
 ---
 
-## 🔊 TTS Details
-
-### Primary: Coqui TTS
-- Models: `tacotron2-DDC`, `glow-tts`
-- Output: `.wav` format
-- Neural voice quality
-- First run downloads the model (~200MB)
-
-### Fallback: gTTS
-- Uses Google Translate TTS
-- Output: `.mp3` format
-- Requires internet connection
-- Activates automatically if Coqui fails
-
-### Caching
-- Audio files are named `audio_{md5_hash}.wav/mp3`
-- Same answer text reuses existing audio — no regeneration
-
----
-
-## 🔧 Troubleshooting
-
-### Coqui TTS Issues
-
-1. **Installation fails:**
-   ```bash
-   pip install TTS --no-cache-dir
-   ```
-   On Windows, you may need Visual C++ Build Tools.
-
-2. **Model download hangs:** Check your internet connection. Models are downloaded on first use.
-
-3. **CUDA/GPU errors:** The project uses CPU by default. If you have GPU issues:
-   ```bash
-   pip install torch --index-url https://download.pytorch.org/whl/cpu
-   ```
-
-4. **Coqui fails at runtime:** The system automatically falls back to gTTS. Check logs in `logs/app.log`.
+## Troubleshooting
 
 ### Gemini API Issues
+1. **API Key not set:** Add `GEMINI_API_KEY` to your `.env` file.
+2. **Invalid API key:** Verify at [Google AI Studio](https://aistudio.google.com/).
+3. **Quota exceeded:** Check your API usage limits.
 
-1. **API Key not set:** Ensure `GEMINI_API_KEY` environment variable is configured.
-2. **Invalid API key:** Verify your API key from Google AI Studio is correct.
-3. **Quota exceeded:** Check your API usage limits at [Google AI Studio](https://aistudio.google.com/).
-4. **Network errors:** Ensure you have a stable internet connection.
+### TTS Issues
+1. **ElevenLabs not working:** Verify your API key. Falls back to gTTS automatically.
+2. **gTTS fails:** Check your internet connection.
+3. **pyttsx3 issues:** Falls back to gTTS automatically.
 
 ### FAISS Issues
-
 1. Use `faiss-cpu` (not `faiss-gpu`) unless you have CUDA.
-2. If index fails to load, use the "Clear Database" button and re-upload PDFs.
+2. If index fails to load, use "Clear All" and re-upload PDFs.
 
 ---
 
-## 🧠 Tech Stack
+## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
 | Backend | FastAPI + Uvicorn |
-| PDF Parsing | pdfplumber |
-| Chunking | LangChain Text Splitters |
-| Embeddings | sentence-transformers (all-MiniLM-L6-v2) |
-| Vector DB | FAISS |
-| LLM | Google Gemini API (gemini-1.5-flash) |
-| TTS Primary | Coqui TTS |
-| TTS Fallback | gTTS |
-| STT | OpenAI Whisper |
 | Frontend | Streamlit |
+| PDF Parsing | pdfplumber |
+| Chunking | LangChain Text Splitters + Gemini (agentic) |
+| Embeddings | sentence-transformers (all-MiniLM-L6-v2) |
+| Vector DB | FAISS (IndexFlatL2) |
+| LLM | Google Gemini API |
+| TTS Premium | ElevenLabs |
+| TTS Free | gTTS |
+| TTS Offline | pyttsx3 |
 
 ---
 
-## 📄 License
+## License
 
 This project is for educational purposes.
