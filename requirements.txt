@@ -1,0 +1,46 @@
+# NCERT Voice Tutor - Requirements
+# ===================================
+
+# Backend Framework
+fastapi
+uvicorn
+python-multipart
+python-dotenv
+
+# PDF Extraction
+pdfplumber
+
+# Text Splitting
+langchain-text-splitters
+
+# Embeddings
+sentence-transformers
+
+# Vector Store
+faiss-cpu
+
+# LLM (Google Gemini API)
+google-generativeai
+
+# Speech-to-Text
+openai-whisper
+
+# Text-to-Speech (Fallback)
+gTTS
+
+# Text-to-Speech (Offline alternative)
+pyttsx3
+
+# Audio Processing
+pydub
+
+# Frontend
+streamlit
+
+# ML / Torch
+torch
+numpy
+
+# NOTE: Coqui TTS (pip install TTS) must be installed separately.
+# Run: pip install TTS --no-build-isolation
+# If it fails, the system will use gTTS and pyttsx3 as fallbacks.

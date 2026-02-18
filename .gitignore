@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+logs/
+*.log
+vector_store/
+data/pdfs/
+data/extracted_text/
+data/audio_outputs/
+
+# OS
+.DS_Store
+Thumbs.db
